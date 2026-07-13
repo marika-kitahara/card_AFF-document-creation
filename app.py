@@ -31,13 +31,6 @@ plt.rcParams["font.family"] = [
 plt.rcParams["axes.unicode_minus"] = False
 
 # =========================================================
-# GitHub固定ファイル設定
-# =========================================================
-# app.py と同じ階層に置いたAFコードマスタExcelを読み込みます。
-# GitHubのRaw URL設定は不要です。
-AF_MASTER_PATH = "AFF_AFコード.xlsx"
-
-# =========================================================
 # フォントサイズ
 # =========================================================
 
@@ -2178,6 +2171,16 @@ generated_images = []
 
 st.sidebar.header("ファイル読込")
 
+uploaded_af_master = st.sidebar.file_uploader(
+    "AFコードマスタをアップロード",
+    type=["xlsx"],
+    help="BOXから最新版をダウンロードしてアップロードしてください"
+)
+
+st.sidebar.markdown(
+    "[📂 AFコードマスタはこちら](https://rak.box.com/s/rtkp5rshiwqsa69pkezl13881b552oe0)"
+)
+
 daily_file = st.sidebar.file_uploader(
     "デイリーレポート ※PWと数式を解除し該当シートのみのファイルをUP",
     type=["xlsx"],
@@ -2221,12 +2224,14 @@ if cost_file:
     except Exception as e:
         st.sidebar.error(f"コストレポート 読み込み失敗: {e}")
 
-try:
-    af_master_codes = read_af_master(AF_MASTER_PATH)
-except Exception as e:
-    # AF画像を使わない場合は、このエラーは無視してOK。
-    if af_apply_file or af_issue_file:
+if uploaded_af_master is not None:
+    try:
+        af_master_codes = read_af_master(uploaded_af_master)
+    except Exception as e:
         st.sidebar.error(f"AFコードマスタ 読み込み失敗: {e}")
+else:
+    st.sidebar.warning("AFコードマスタをアップロードしてください。")
+    st.stop()
 
 if af_apply_file and af_master_codes:
     try:
