@@ -24,10 +24,15 @@ st.caption("それぞれ、必要なシートのみ新しいファイルを作�
 # matplotlib 日本語フォント設定
 # =========================================================
 
-plt.rcParams["font.family"] = [
-    "Noto Sans CJK JP",
-    "sans-serif",
-]
+from pathlib import Path
+from matplotlib import font_manager
+
+FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansJP-Regular.ttf"
+
+font_manager.fontManager.addfont(str(FONT_PATH))
+FONT_NAME = font_manager.FontProperties(fname=str(FONT_PATH)).get_name()
+
+plt.rcParams["font.family"] = FONT_NAME
 plt.rcParams["axes.unicode_minus"] = False
 
 # =========================================================
