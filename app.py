@@ -1,12 +1,14 @@
 import io
 import zipfile
 from datetime import datetime, date
+from pathlib import Path
 
 import pandas as pd
 import streamlit as st
 from openpyxl import load_workbook
 
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 from matplotlib.patches import Wedge, Rectangle, FancyBboxPatch
 from matplotlib.ticker import FuncFormatter
 
@@ -24,16 +26,49 @@ st.caption("それぞれ、必要なシートのみ新しいファイルを作�
 # matplotlib 日本語フォント設定
 # =========================================================
 
-from pathlib import Path
-from matplotlib import font_manager
+def setup_japanese_font():
+    """
+    利用可能な日本語フォントを安全に設定する。
 
-FONT_PATH = Path(__file__).parent / "fonts" / "NotoSansJP-Regular.ttf"
+    リポジトリ内のフォントが空・破損していてもアプリを停止させず、
+    Streamlit Cloud 側に日本語フォントがあればそれを利用する。
+    """
+    local_font = Path(__file__).parent / "fonts" / "NotoSansJP-Regular.ttf"
 
-font_manager.fontManager.addfont(str(FONT_PATH))
-FONT_NAME = font_manager.FontProperties(fname=str(FONT_PATH)).get_name()
+    # まず同梱フォントを試す。0 byte / 破損ファイルはスキップ。
+    if local_font.exists() and local_font.stat().st_size > 0:
+        try:
+            font_manager.fontManager.addfont(str(local_font))
+            font_name = font_manager.FontProperties(fname=str(local_font)).get_name()
+            plt.rcParams["font.family"] = font_name
+            plt.rcParams["axes.unicode_minus"] = False
+            return
+        except Exception:
+            pass
 
-plt.rcParams["font.family"] = FONT_NAME
-plt.rcParams["axes.unicode_minus"] = False
+    # 次に環境にインストール済みの日本語フォントを探す。
+    installed_fonts = {f.name for f in font_manager.fontManager.ttflist}
+    candidates = [
+        "Noto Sans CJK JP",
+        "Noto Sans JP",
+        "IPAexGothic",
+        "IPAGothic",
+        "Yu Gothic",
+        "Meiryo",
+    ]
+
+    for font_name in candidates:
+        if font_name in installed_fonts:
+            plt.rcParams["font.family"] = font_name
+            plt.rcParams["axes.unicode_minus"] = False
+            return
+
+    # 日本語フォントが見つからなくても、起動自体は止めない。
+    plt.rcParams["font.family"] = "sans-serif"
+    plt.rcParams["axes.unicode_minus"] = False
+
+
+setup_japanese_font()
 
 # =========================================================
 # フォントサイズ
