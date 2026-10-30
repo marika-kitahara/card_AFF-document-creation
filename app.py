@@ -12,19 +12,10 @@ from matplotlib import font_manager
 from matplotlib.patches import Wedge, Rectangle, FancyBboxPatch
 from matplotlib.ticker import FuncFormatter
 
-
-# =========================================================
-# Streamlit基本設定
-# =========================================================
-
 st.set_page_config(page_title="AFF定例資料作成", layout="wide")
 st.title("🎈AFF定例資料作成")
 st.caption("デイリーレポート・コストレポートから、定例資料用の画像を作成します。")
 st.caption("それぞれ、必要なシートのみ新しいファイルを作成し数式は解除した状態のデータを用意してください。")
-
-# =========================================================
-# matplotlib 日本語フォント設定
-# =========================================================
 
 def setup_japanese_font():
     """
@@ -35,7 +26,6 @@ def setup_japanese_font():
     """
     local_font = Path(__file__).parent / "fonts" / "NotoSansJP-Regular.ttf"
 
-    # まず同梱フォントを試す。0 byte / 破損ファイルはスキップ。
     if local_font.exists() and local_font.stat().st_size > 0:
         try:
             font_manager.fontManager.addfont(str(local_font))
@@ -46,7 +36,6 @@ def setup_japanese_font():
         except Exception:
             pass
 
-    # 次に環境にインストール済みの日本語フォントを探す。
     installed_fonts = {f.name for f in font_manager.fontManager.ttflist}
     candidates = [
         "Noto Sans CJK JP",
@@ -63,16 +52,10 @@ def setup_japanese_font():
             plt.rcParams["axes.unicode_minus"] = False
             return
 
-    # 日本語フォントが見つからなくても、起動自体は止めない。
     plt.rcParams["font.family"] = "sans-serif"
     plt.rcParams["axes.unicode_minus"] = False
 
-
 setup_japanese_font()
-
-# =========================================================
-# フォントサイズ
-# =========================================================
 
 FONT_HEADER = 34
 FONT_BOX_TITLE = 16
@@ -92,10 +75,6 @@ FONT_AXIS = 10
 FONT_LEGEND = 11
 FONT_FOOTER = 14
 
-# =========================================================
-# 共通関数
-# =========================================================
-
 def safe_div(a, b):
     if b is None or b == 0:
         return 0
@@ -105,10 +84,8 @@ def safe_div(a, b):
 def fmt_num(v):
     return f"{v:,.0f}"
 
-
 def fmt_yen(v):
     return f"{v:,.0f} 円"
-
 
 def to_md_label(series):
     return (
@@ -116,7 +93,6 @@ def to_md_label(series):
         .str.replace(r"^0", "", regex=True)
         .str.replace(r"/0", "/", regex=True)
     )
-
 
 def unmerge_and_fill(ws):
     """
@@ -177,11 +153,6 @@ def render_zip_download(generated_images):
         mime="application/zip",
     )
 
-
-# =========================================================
-# デイリーレポート
-# =========================================================
-
 def read_daily_report(uploaded_file):
     """
     デイリーレポートを読み込む。
@@ -223,12 +194,10 @@ def read_daily_report(uploaded_file):
         for c in date_cols
     ]
 
-    # KPI用：ポイントサイト合計 12〜15行目
     point_total_df = raw_df.iloc[11:15, [site_col, detail_col] + date_cols].copy()
     point_total_df.columns = ["サイト名", "ディテール"] + date_names
     point_total_df["サイト名"] = "【ポイントサイト】合計"
 
-    # KPI用：比較サイト合計 15〜19行目
     compare_total_df = raw_df.iloc[14:19, [site_col, detail_col] + date_cols].copy()
     compare_total_df.columns = ["サイト名", "ディテール"] + date_names
     compare_total_df["サイト名"] = "【比較サイト】合計"
@@ -245,7 +214,6 @@ def read_daily_report(uploaded_file):
     total_long["日付"] = pd.to_datetime(total_long["日付"])
     total_long["値"] = pd.to_numeric(total_long["値"], errors="coerce").fillna(0)
 
-    # 明細用：32行目以降
     df = raw_df.iloc[data_start_row:, [site_col, detail_col] + date_cols].copy()
     df.columns = ["サイト名", "ディテール"] + date_names
 
@@ -270,11 +238,6 @@ def read_daily_report(uploaded_file):
     long_df["値"] = pd.to_numeric(long_df["値"], errors="coerce").fillna(0)
 
     return long_df, total_long
-
-
-# =========================================================
-# コストレポート
-# =========================================================
 
 def read_cost_report(uploaded_file):
     """
@@ -329,12 +292,6 @@ def read_cost_report(uploaded_file):
 
     return df
 
-
-
-# =========================================================
-# AF実績データ
-# =========================================================
-
 def normalize_af_code(value):
     """
     Excel由来のAFコードを文字列として正規化する。
@@ -352,7 +309,6 @@ def normalize_af_code(value):
         text = text[:-2]
 
     return text
-
 
 @st.cache_data(show_spinner=False)
 def read_af_master(path):
@@ -383,7 +339,6 @@ def read_af_master(path):
         raise ValueError("AFコードマスタのA列2行目以降にAFコードが見つかりませんでした。")
 
     return af_codes
-
 
 def read_af_result_file(uploaded_file, af_codes, value_name):
     """
@@ -440,7 +395,6 @@ def read_af_result_file(uploaded_file, af_codes, value_name):
 
     return result_df
 
-
 def sum_af_result(af_df, start_date, end_date, value_name):
     if af_df is None or af_df.empty:
         return 0
@@ -451,7 +405,6 @@ def sum_af_result(af_df, start_date, end_date, value_name):
     ].copy()
 
     return filtered[value_name].sum()
-
 
 def create_af_overall_values(
     af_apply_df,
@@ -484,13 +437,8 @@ def create_af_overall_values(
         "AF承認",
     )
 
-    # AF発生目標
-    # 申込Forecast × 0.9
     apply_forecast = cost_filtered["申込_Forecast"].sum()
     target_cv = apply_forecast * 0.9
-
-    # AF承認目標
-    # 発行Forecast（コストレポートK列） × 0.9
     forecast_cv = cost_filtered["発行_Forecast"].sum()
     issue_target = forecast_cv * 0.9
 
@@ -507,9 +455,6 @@ def create_af_overall_values(
         apply_actual_cpa
     )
 
-    # AF承認CPA
-    # 想定CPA：Forecastコスト ÷ 発行Forecast（コストレポートK列）
-    # 実績CPA：発行コスト ÷ AF承認
     issue_forecast_cpa = safe_div(
         forecast_cost,
         forecast_cv
@@ -542,7 +487,6 @@ def create_af_overall_values(
         "issue_cpa_ratio": issue_cpa_ratio,
     }
 
-
 def create_af_chart_df(cost_filtered):
     """
     AF実績下段グラフ用。
@@ -568,16 +512,11 @@ def create_af_chart_df(cost_filtered):
 
     return chart_df
 
-# =========================================================
-# KPI集計
-# =========================================================
-
 def get_daily_value(df, site_name, detail_name):
     return df[
         (df["サイト名"] == site_name)
         & (df["ディテール"] == detail_name)
     ]["値"].sum()
-
 
 def create_kpi_values(daily_total_filtered, cost_filtered):
     # CV実績：Actual
@@ -592,7 +531,6 @@ def create_kpi_values(daily_total_filtered, cost_filtered):
         "Actual",
     )
 
-    # CV目標：Daily Target (Initiative)
     point_target = get_daily_value(
         daily_total_filtered,
         "【ポイントサイト】合計",
@@ -651,7 +589,6 @@ def create_kpi_values(daily_total_filtered, cost_filtered):
         "target_issue_cpa": target_issue_cpa,
     }
 
-
 def create_pointsite_values(daily_total_filtered):
     """
     還元サイト（ポイントサイト）用KPIを作成。
@@ -678,7 +615,6 @@ def create_pointsite_values(daily_total_filtered):
         "actual": actual,
         "ratio": ratio,
     }
-
 
 def create_pointsite_daily_chart_df(daily_total_filtered):
     """
@@ -711,7 +647,6 @@ def create_pointsite_daily_chart_df(daily_total_filtered):
 
     return chart_df
 
-
 def create_comparesite_values(daily_total_filtered):
     """
     非還元サイト（比較サイト）用KPIを作成。
@@ -738,7 +673,6 @@ def create_comparesite_values(daily_total_filtered):
         "actual": actual,
         "ratio": ratio,
     }
-
 
 def create_comparesite_daily_chart_df(daily_total_filtered):
     """
@@ -771,11 +705,6 @@ def create_comparesite_daily_chart_df(daily_total_filtered):
 
     return chart_df
 
-
-# =========================================================
-# 画像作成
-# =========================================================
-
 def draw_gauge(ax, ratio, title):
     """
     100% = 上半円180度
@@ -800,11 +729,9 @@ def draw_gauge(ax, ratio, title):
         )
     )
 
-    # 実績
     ratio_clamped = min(max(ratio, 0), 2)
 
     if ratio_clamped <= 1:
-        # 0〜100%：上半円の中だけ塗る
         degree = ratio_clamped * 180
 
         ax.add_patch(
@@ -819,7 +746,6 @@ def draw_gauge(ax, ratio, title):
             )
         )
     else:
-        # 100%：上半円を全部塗る
         ax.add_patch(
             Wedge(
                 (0, 0),
@@ -832,7 +758,6 @@ def draw_gauge(ax, ratio, title):
             )
         )
 
-        # 100〜200%：下半円を追加で塗る
         extra_degree = (ratio_clamped - 1) * 180
 
         ax.add_patch(
@@ -847,8 +772,6 @@ def draw_gauge(ax, ratio, title):
             )
         )
 
-
-    # 180度線
     ax.plot([-1.25, 1.25], [0, 0], color="#333333", linewidth=1.4)
 
     ax.text(-1.12, 0.92, title, fontsize=FONT_GAUGE_TITLE, ha="left", va="center")
@@ -867,7 +790,6 @@ def draw_gauge(ax, ratio, title):
     ax.set_xlim(-1.25, 1.25)
     ax.set_ylim(-0.18, 1.25)
 
-# 200%時の下半円は表示範囲外にはみ出しても描画する
     for patch in ax.patches:
         patch.set_clip_on(False)
 
@@ -901,7 +823,6 @@ def create_header(fig, report_title, deadline_date_text):
         )
     )
 
-
 def create_summary_image(
     kpi,
     cost_filtered,
@@ -923,7 +844,6 @@ def create_summary_image(
 
     create_header(fig, report_title, deadline_date_text)
 
-    # 上段枠
     ax_bg = fig.add_axes([0.045, 0.50, 0.91, 0.32])
     ax_bg.axis("off")
     ax_bg.add_patch(
@@ -946,11 +866,9 @@ def create_summary_image(
         va="center",
     )
 
-    # CVゲージ
     ax_cv = fig.add_axes([0.060, 0.545, 0.225, 0.235])
     draw_gauge(ax_cv, kpi["total_cv_ratio"], "CV")
 
-    # CVテキスト枠
     ax_cv_text = fig.add_axes([0.285, 0.535, 0.275, 0.255])
     ax_cv_text.axis("off")
     ax_cv_text.add_patch(Rectangle((0, 0), 1, 1, facecolor="#eeeeee", edgecolor="none"))
@@ -979,11 +897,9 @@ def create_summary_image(
         va="center",
     )
 
-    # COSTゲージ
     ax_cost = fig.add_axes([0.570, 0.545, 0.225, 0.235])
     draw_gauge(ax_cost, kpi["cost_ratio"], "COST")
 
-    # 右テキスト枠
     ax_right = fig.add_axes([0.785, 0.525, 0.160, 0.275])
     ax_right.axis("off")
     ax_right.add_patch(Rectangle((0, 0), 1, 1, facecolor="#eeeeee", edgecolor="none"))
@@ -1036,9 +952,6 @@ def create_summary_image(
         va="bottom",
     )
 
-    # 下段グラフ
-    # 棒グラフ：CV（発行_Forecast / 発行_実績）
-    # 折れ線グラフ：COST（Forecastコスト / 発行コスト）
     ax = fig.add_axes([0.16, 0.15, 0.74, 0.30])
     ax2 = ax.twinx()
 
@@ -1048,7 +961,6 @@ def create_summary_image(
     x = list(range(len(chart_df)))
     width = 0.30
 
-    # 棒：CV
     ax.bar(
         [i - width / 2 for i in x],
         chart_df["発行_Forecast"],
@@ -1064,7 +976,6 @@ def create_summary_image(
         color="#d50000",
     )
 
-    # 線：COST
     ax2.plot(
         x,
         chart_df["Forecastコスト"],
@@ -1082,15 +993,10 @@ def create_summary_image(
 
     ax.set_xticks(x)
     ax.set_xticklabels(chart_df["日付ラベル"], fontsize=FONT_AXIS)
-
-    # 左軸：CV件数
     ax.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"{v:,.0f}"))
     ax.tick_params(axis="y", labelsize=FONT_AXIS)
-
-    # 右軸：COST金額
     ax2.yaxis.set_major_formatter(FuncFormatter(lambda v, _: f"¥{v:,.0f}"))
     ax2.tick_params(axis="y", labelsize=FONT_AXIS)
-
     ax.grid(axis="x", color="#dddddd", linewidth=0.7)
     ax.grid(axis="y", visible=False)
 
@@ -1138,7 +1044,6 @@ def create_summary_image(
 
     return img_bytes
 
-
 def create_pointsite_image(
     point_values,
     point_chart_df,
@@ -1161,7 +1066,6 @@ def create_pointsite_image(
 
     create_header(fig, report_title, deadline_date_text)
 
-    # 見出し
     fig.text(
         0.16,
         0.795,
@@ -1173,11 +1077,9 @@ def create_pointsite_image(
         color="#111111",
     )
 
-    # CVゲージ
     ax_cv = fig.add_axes([0.18, 0.535, 0.33, 0.28])
     draw_gauge(ax_cv, point_values["ratio"], "CV")
 
-    # KPIテキスト枠
     ax_text = fig.add_axes([0.62, 0.55, 0.20, 0.25])
     ax_text.axis("off")
     ax_text.add_patch(Rectangle((0, 0), 1, 1, facecolor="#eeeeee", edgecolor="none"))
@@ -1212,7 +1114,6 @@ def create_pointsite_image(
         va="center",
     )
 
-    # 日別Target/Actual棒グラフ
     ax = fig.add_axes([0.16, 0.20, 0.74, 0.28])
 
     chart_df = point_chart_df.copy().sort_values("日付")
@@ -1303,7 +1204,6 @@ def create_comparesite_image(
 
     create_header(fig, report_title, deadline_date_text)
 
-    # 見出し
     fig.text(
         0.16,
         0.795,
@@ -1315,11 +1215,9 @@ def create_comparesite_image(
         color="#111111",
     )
 
-    # CVゲージ
     ax_cv = fig.add_axes([0.18, 0.535, 0.33, 0.28])
     draw_gauge(ax_cv, compare_values["ratio"], "CV")
 
-    # KPIテキスト枠
     ax_text = fig.add_axes([0.62, 0.55, 0.20, 0.25])
     ax_text.axis("off")
     ax_text.add_patch(Rectangle((0, 0), 1, 1, facecolor="#eeeeee", edgecolor="none"))
@@ -1354,7 +1252,6 @@ def create_comparesite_image(
         va="center",
     )
 
-    # 日別Target/Actual棒グラフ
     ax = fig.add_axes([0.16, 0.20, 0.74, 0.28])
 
     chart_df = compare_chart_df.copy().sort_values("日付")
@@ -1422,7 +1319,6 @@ def create_comparesite_image(
 
     return img_bytes
 
-
 def create_media_values(daily_filtered, site_name):
     """
     媒体別分析用KPIを作成。
@@ -1452,7 +1348,6 @@ def create_media_values(daily_filtered, site_name):
         "actual": actual,
         "ratio": ratio,
     }
-
 
 def create_media_chart_df(daily_filtered, site_name):
     """
@@ -1486,7 +1381,6 @@ def create_media_chart_df(daily_filtered, site_name):
 
     return chart_df
 
-
 def create_media_image(
     media_values,
     media_chart_df,
@@ -1507,7 +1401,6 @@ def create_media_image(
     canvas.axis("off")
     canvas.add_patch(Rectangle((0, 0), 1, 1, facecolor="white", edgecolor="none"))
 
-    # ヘッダー：媒体別分析は「Affiliate」なしで見本寄せ
     fig.text(
         0.045,
         0.925,
@@ -1529,7 +1422,6 @@ def create_media_image(
         )
     )
 
-    # 左見出し
     fig.text(
         0.060,
         0.795,
@@ -1541,11 +1433,9 @@ def create_media_image(
         color="#111111",
     )
 
-    # ゲージ
     ax_cv = fig.add_axes([0.070, 0.555, 0.260, 0.245])
     draw_gauge(ax_cv, media_values["ratio"], "")
 
-    # 中央矢印
     fig.text(
         0.345,
         0.655,
@@ -1556,7 +1446,6 @@ def create_media_image(
         color="#111111",
     )
 
-    # 進捗テキスト
     ax_text = fig.add_axes([0.405, 0.585, 0.250, 0.160])
     ax_text.axis("off")
 
@@ -1588,8 +1477,6 @@ def create_media_image(
         va="center",
     )
 
-    # 下段グラフ
-    # 棒：CV、線：CT
     ax = fig.add_axes([0.16, 0.18, 0.72, 0.30])
     ax2 = ax.twinx()
 
@@ -1707,7 +1594,6 @@ def create_media_gauge_part_image(media_values):
     img_bytes.seek(0)
     return img_bytes
 
-
 def create_media_progress_part_image(media_values, deadline_date_text):
     """
     媒体別分析の進捗テキスト部分だけを、元画像と同じ16:9キャンバスで作成。
@@ -1763,7 +1649,6 @@ def create_media_progress_part_image(media_values, deadline_date_text):
     plt.close(fig)
     img_bytes.seek(0)
     return img_bytes
-
 
 def create_media_chart_part_image(media_chart_df):
     """
@@ -1851,9 +1736,6 @@ def create_media_chart_part_image(media_chart_df):
     img_bytes.seek(0)
     return img_bytes
 
-
-
-
 def draw_af_small_gauge(ax, ratio, side_label="CV", center_label="<目標対比>", percent_text=None):
     """
     AF実績画像用の小さめゲージ。
@@ -1939,7 +1821,6 @@ def draw_af_small_gauge(ax, ratio, side_label="CV", center_label="<目標対比>
     for text in ax.texts:
         text.set_clip_on(False)
 
-
 def add_round_box(ax, xy, width, height, radius=0.04, facecolor="#dddddd"):
     box = FancyBboxPatch(
         xy,
@@ -1952,7 +1833,6 @@ def add_round_box(ax, xy, width, height, radius=0.04, facecolor="#dddddd"):
     )
     ax.add_patch(box)
     return box
-
 
 def create_af_overall_image(
     af_values,
@@ -1993,7 +1873,6 @@ def create_af_overall_image(
         )
     )
 
-    # ゲージ：左上 AF発生CV
     ax_g1 = fig.add_axes([0.075, 0.615, 0.230, 0.200])
     draw_af_small_gauge(
         ax_g1,
@@ -2002,7 +1881,6 @@ def create_af_overall_image(
         center_label="<目標対比>",
     )
 
-    # ゲージ：左下 AF承認CV（発行は目標対比なし）
     ax_g2 = fig.add_axes([0.075, 0.405, 0.230, 0.200])
     issue_ratio = safe_div(
         af_values["af_issue"],
@@ -2016,7 +1894,6 @@ def create_af_overall_image(
         center_label="<目標対比>",
     )
 
-    # 実績ボックス
     ax_box = fig.add_axes([0.320, 0.395, 0.215, 0.385])
     ax_box.axis("off")
     add_round_box(ax_box, (0, 0), 1, 1, radius=0.12, facecolor="#dddddd")
@@ -2042,7 +1919,6 @@ def create_af_overall_image(
         color="#333333",
     )
 
-    # 右側CPAゲージ
     cpa_ratio_for_gauge = safe_div(af_values["apply_forecast_cpa"], af_values["apply_actual_cpa"])
     ax_g3 = fig.add_axes([0.590, 0.605, 0.230, 0.200])
     draw_af_small_gauge(
@@ -2061,7 +1937,6 @@ def create_af_overall_image(
         center_label="<目標対比>",
     )
 
-    # CPAボックス
     ax_cpa = fig.add_axes([0.825, 0.395, 0.135, 0.385])
     ax_cpa.axis("off")
     add_round_box(ax_cpa, (0, 0), 1, 1, radius=0.12, facecolor="#dddddd")
@@ -2109,7 +1984,6 @@ def create_af_overall_image(
         color="#333333",
     )
 
-    # 下段グラフ
     ax = fig.add_axes([0.235, 0.145, 0.650, 0.245])
     ax2 = ax.twinx()
 
@@ -2202,11 +2076,6 @@ def create_af_overall_image(
 
     return img_bytes
 
-
-# =========================================================
-# UI
-# =========================================================
-
 generated_images = []
 
 st.sidebar.header("ファイル読込")
@@ -2297,7 +2166,6 @@ if daily_df is None and cost_df is None and af_apply_df is None and af_issue_df 
     st.info("まずファイルをアップロードしてね。")
     st.stop()
 
-
 st.sidebar.header("集計条件")
 
 date_candidates = []
@@ -2346,11 +2214,6 @@ deadline_date_text = st.sidebar.text_input(
 
 selected_media_site = None
 
-
-# =========================================================
-# 画像生成
-# =========================================================
-
 if daily_total_df is not None and cost_df is not None:
     daily_total_filtered = daily_total_df[
         (daily_total_df["日付"].dt.date >= start_date)
@@ -2368,8 +2231,6 @@ if daily_total_df is not None and cost_df is not None:
     compare_values = create_comparesite_values(daily_total_filtered)
     compare_chart_df = create_comparesite_daily_chart_df(daily_total_filtered)
 
-
-    # 全体実績画像
     img_bytes = create_summary_image(
         kpi=kpi,
         cost_filtered=cost_filtered,
@@ -2386,7 +2247,6 @@ if daily_total_df is not None and cost_df is not None:
         generated_images=generated_images,
     )
 
-    # 還元サイト画像
     point_img_bytes = create_pointsite_image(
         point_values=point_values,
         point_chart_df=point_chart_df,
@@ -2403,8 +2263,6 @@ if daily_total_df is not None and cost_df is not None:
         generated_images=generated_images,
     )
 
-
-    # 非還元サイト画像
     compare_img_bytes = create_comparesite_image(
         compare_values=compare_values,
         compare_chart_df=compare_chart_df,
@@ -2420,10 +2278,6 @@ if daily_total_df is not None and cost_df is not None:
         file_name="非還元サイト実績.png",
         generated_images=generated_images,
     )
-
-    # =====================================================
-    # AF実績
-    # =====================================================
 
     if af_apply_df is not None or af_issue_df is not None:
         st.subheader("AF実績")
@@ -2442,7 +2296,6 @@ if daily_total_df is not None and cost_df is not None:
 
             af_chart_df = create_af_chart_df(cost_filtered)
 
-            # 確認用の数値テーブル
             af_check_df = pd.DataFrame([
                 {
                     "項目": "AF発生",
@@ -2480,10 +2333,6 @@ if daily_total_df is not None and cost_df is not None:
                 generated_images=generated_images,
             )
 
-    # =====================================================
-    # 媒体別分析
-    # =====================================================
-
     st.subheader("媒体別分析")
 
     media_site_options = sorted(
@@ -2508,7 +2357,6 @@ if daily_total_df is not None and cost_df is not None:
         key="selected_media_site",
     )
 
-    # 媒体別分析画像
     if selected_media_site:
         daily_filtered = daily_df[
             (daily_df["日付"].dt.date >= start_date)
@@ -2542,10 +2390,6 @@ if daily_total_df is not None and cost_df is not None:
             generated_images=generated_images,
         )
         
-        # ==========================================
-        # 媒体別分析パーツ：画像は表示せず、DLボタンだけ出す
-        # ==========================================
-
         gauge_img = create_media_gauge_part_image(
             media_values
         ).getvalue()
@@ -2587,7 +2431,6 @@ if daily_total_df is not None and cost_df is not None:
                 mime="image/png",
             )
 
-        # ZIP一括DLにはパーツ画像も含める
         generated_images.extend([
             {
                 "filename": f"{selected_media_site}_ゲージ.png",
